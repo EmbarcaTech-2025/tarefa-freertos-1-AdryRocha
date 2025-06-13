@@ -28,13 +28,13 @@ RTOS_BitDogLab_FreeRTOS/
     ├── led_rgb.h
     └── main.c
 
-Sistema Multitarefa com FreeRTOS na BitDogLab (Raspberry Pi Pico W)
+## Sistema Multitarefa com FreeRTOS na BitDogLab (Raspberry Pi Pico W)
 1. Visão Geral do Projeto
 Este repositório contém um sistema embarcado multitarefa desenvolvido para a placa BitDogLab V6, que utiliza um Raspberry Pi Pico W. O projeto demonstra o uso de um Sistema Operacional de Tempo Real (RTOS), especificamente o FreeRTOS, para gerenciar de forma concorrente três periféricos: um LED RGB, um Buzzer e dois botões de interação.
 
 O objetivo é servir como um material de estudo e um template robusto para projetos mais complexos que exijam gerenciamento de múltiplas tarefas, previsibilidade e modularidade em sistemas embarcados.
 
-2. Funcionalidades
+## 2. Funcionalidades
 O firmware implementa as seguintes funcionalidades simultaneamente:
 
 Tarefa do LED RGB: Controla um LED RGB, alternando ciclicamente entre as cores Vermelho, Verde e Azul a cada 500 milissegundos.
@@ -47,7 +47,7 @@ Botão A (GPIO 5): Suspende ou retoma a tarefa do LED RGB. Ao pressionar, o cicl
 
 Botão B (GPIO 6): Suspende ou retoma a tarefa do Buzzer. Ao pressionar, os beeps param; ao pressionar novamente, eles retornam.
 
-3. Hardware Necessário
+## 3. Hardware Necessário
 Placa BitDogLab V6 com Raspberry Pi Pico W.
 Cabo Micro-USB para gravação do firmware e alimentação.
 
@@ -65,7 +65,7 @@ Botão A              7           GPIO 5     Botão para suspender/retomar LED
 
 Botão B              9           GPIO 6     Botão para suspender/retomar Buzzer
 
-4. Software e Ferramentas
+## 4. Software e Ferramentas
 Para compilar e gravar este projeto, você precisará ter o ambiente de desenvolvimento para o Raspberry Pi Pico configurado.
 
 VS Code: Editor de código principal.
@@ -75,7 +75,7 @@ CMake: Ferramenta de automação de compilação.
 Git: Para clonar o repositório.
 (Opcional) Ninja: Sistema de compilação, geralmente mais rápido que o Make.
 
-5. Como Compilar e Gravar
+## 5. Como Compilar e Gravar
 Passo 1: Clonar o Repositório
 Clone este repositório e o submódulo do kernel do FreeRTOS, que é um requisito.
 
@@ -111,17 +111,17 @@ Conecte-a ao computador via cabo USB. Ela será montada como um disco removível
 Arraste e solte o arquivo rtos_bitdoglab.uf2 para dentro do disco da Pico.
 A placa irá reiniciar automaticamente e começará a executar o programa.
 
-6. Análise da Arquitetura e do Código
+## 6. Análise da Arquitetura e do Código
 A arquitetura do projeto foi pensada para ser modular, escalável e de fácil manutenção, princípios fundamentais no desenvolvimento de firmware de qualidade.
 
-6.1. Estrutura do Projeto
+### 6.1. Estrutura do Projeto
 O código foi desacoplado em módulos lógicos (led_rgb, buzzer, button). Cada módulo tem seu próprio arquivo .h (interface) e .c (implementação). Isso permite que as equipes trabalhem em paralelo e facilita a substituição ou o teste de um componente sem afetar os outros. O main.c atua como um "integrador", orquestrando a criação das tarefas, mas sem conter a lógica de negócio de cada periférico.
 
-6.2. Análise do Código-Fonte
+### 6.2. Análise do Código-Fonte
 main.c
 Este arquivo é o ponto de entrada (main) e o coração do sistema multitarefa. Sua única responsabilidade é inicializar o hardware essencial, criar as tarefas (threads) que executarão as funcionalidades e entregar o controle ao escalonador do FreeRTOS com vTaskStartScheduler(). A partir daí, o RTOS assume o controle total do fluxo de execução.
 
-Usamos a função xTaskCreate() da API do FreeRTOS.
+# Usamos a função xTaskCreate() da API do FreeRTOS.
 xTaskCreate(led_rgb_task, "LED_Task", 256, NULL, 1, &led_rgb_task_handle);
 led_rgb_task: Ponteiro para a função que implementa a tarefa.
 "LED_Task": Nome descritivo para depuração.
@@ -130,18 +130,18 @@ NULL: Parâmetros passados para a tarefa (nenhum neste caso).
 1: Prioridade da tarefa. Demos prioridade 2 à tarefa dos botões para garantir uma resposta mais rápida à interação do usuário.
 &led_rgb_task_handle: Ponteiro para uma variável que armazenará o "handle" (identificador) da tarefa. Precisamos dele para poder suspendê-la ou retomá-la de outra tarefa.
 
-led_rgb.c / buzzer.c
+# led_rgb.c / buzzer.c
 Essas tarefas representam "threads" independentes e bloqueantes. Elas vivem em um loop while(1) eterno, mas utilizam a função vTaskDelay(). Essa chamada é crucial: ela não é um delay "busy-wait" que consome CPU. Em vez disso, ela informa ao escalonador do RTOS que a tarefa pode ser "adormecida" pelo tempo especificado, permitindo que outras tarefas (como a do buzzer ou dos botões) usem o processador. Isso garante a concorrência e o uso eficiente da CPU.
 A tarefa do LED manipula GPIOs com gpio_put(), enquanto a do buzzer usa o periférico de hardware PWM (pwm_set_chan_level()) para gerar uma onda sonora na frequência desejada, uma abordagem muito mais eficiente do que tentar "bit-banging" por software.
 
-button.c
+# button.c
 A lógica de controle do sistema está encapsulada aqui. Esta tarefa tem uma prioridade maior para garantir que a entrada do usuário seja processada rapidamente. Ela demonstra a comunicação inter-tarefas, onde uma tarefa (botões) controla o estado de outras (LED e buzzer).
 A tarefa utiliza uma técnica de polling com debounce por software.
 Polling: !gpio_get(BUTTON_A_PIN) verifica continuamente se o pino do botão está em nível baixo.
 Debounce: Uma flag a_pressed e um vTaskDelay() após a detecção garantem que um único pressionamento mecânico não seja interpretado como múltiplos cliques.
 Controle de Tarefas: As funções vTaskSuspend(led_rgb_task_handle) e vTaskResume(led_rgb_task_handle) são usadas para pausar e continuar a execução das outras tarefas, usando os handles que foram salvos durante a criação.
 
-7. A Importância de Usar um RTOS
+### 7. A Importância de Usar um RTOS
 Em sistemas embarcados simples, um loop while(1) na main() (conhecido como "super loop") pode ser suficiente. No entanto, à medida que a complexidade aumenta, essa abordagem se torna insustentável.
 
 Previsibilidade e Tempo Real: Um RTOS garante que tarefas críticas sejam executadas dentro de prazos definidos (determinismo), algo que um super loop não pode garantir. O escalonador preemptivo do FreeRTOS sempre garante que a tarefa de maior prioridade pronta para executar receba o controle da CPU.
@@ -153,13 +153,13 @@ Eficiência de Recursos: Funções bloqueantes como vTaskDelay() e semáforos pe
 Comunicação e Sincronização: O RTOS oferece mecanismos robustos e seguros (filas, semáforos, mutexes) para que as tarefas troquem dados e sincronizem suas ações, evitando condições de corrida e corrupção de dados.
 
 
-Relatório de Análise do Sistema Multitarefa com FreeRTOS
+## Relatório de Análise do Sistema Multitarefa com FreeRTOS
 
-1. Análise de Comportamento: Tarefas com a Mesma Prioridade
+# 1. Análise de Comportamento: Tarefas com a Mesma Prioridade
 Pergunta: O que acontece se todas as tarefas tiverem a mesma prioridade?
 Resposta: Quando todas as tarefas em um sistema FreeRTOS são configuradas com a mesma prioridade, o escalonador implementa uma política de agendamento conhecida como Round-Robin com Time-Slicing.
 
-Comportamento Detalhado:
+# Comportamento Detalhado:
 Execução em Fatias de Tempo (Time-Slicing): O escalonador do FreeRTOS concede a cada tarefa uma pequena "fatia" de tempo de CPU para executar. Ele alterna rapidamente entre as tarefas que estão no estado "Pronto" (Ready), criando a ilusão de que todas estão rodando simultaneamente.
 
 O Papel do vTaskDelay(): Neste projeto, todas as tarefas (led_rgb_task, buzzer_task, button_task) contêm chamadas para vTaskDelay(). Esta função é crucial: quando uma tarefa a chama, ela voluntariamente cede o controle da CPU e entra no estado "Bloqueado" (Blocked) pelo tempo especificado.
@@ -168,7 +168,7 @@ Cooperação e Eficiência: Assim que a tarefa A (ex: LED) entra em delay, o esc
 
 Conclusão: Se todas as três tarefas tivessem a mesma prioridade, o sistema continuaria funcionando corretamente. A alternância entre elas seria gerenciada de forma cooperativa pelas chamadas de vTaskDelay(). No entanto, perderíamos a capacidade de garantir que a tarefa dos botões (a mais crítica em termos de resposta ao usuário) seja atendida antes das outras, o que poderia levar a uma pequena latência perceptível se as outras tarefas estivessem realizando operações muito intensivas.
 
-2. Análise de Consumo de CPU
+### 2. Análise de Consumo de CPU
 Pergunta: Qual tarefa consome mais tempo da CPU?
 Resposta: Para determinar qual tarefa consome mais tempo de CPU, devemos analisar com que frequência cada tarefa está no estado "Executando" (Running) em vez de "Bloqueado" (Blocked).
 
@@ -180,7 +180,7 @@ Tarefa dos Botões (button_task): Esta é a tarefa que mais consome CPU. Seu loo
 
 Conclusão: A button_task é a que consome mais tempo de CPU. Embora o tempo de execução de sua lógica seja muito curto, a frequência com que ela é executada pelo escalonador é significativamente maior do que a das outras duas tarefas. Em um sistema com muitas tarefas, otimizar o tempo de polling ou usar interrupções em vez de polling seria uma estratégia para reduzir ainda mais o consumo da CPU.
 
-3. Análise de Riscos: Polling sem Prioridades
+### 3. Análise de Riscos: Polling sem Prioridades
 Pergunta: Quais seriam os riscos de usar polling sem prioridades?
 Resposta: Usar "polling sem prioridades" é a abordagem típica de um sistema bare-metal (sem sistema operacional), onde todas as verificações são feitas sequencialmente dentro de um único loop while(1).
 
@@ -192,7 +192,7 @@ while(1) {
     checar_sensor_x();  // Leva, por ex., 300ms!
 }
 
-Os riscos dessa abordagem são significativos, especialmente à medida que o sistema cresce:
+## Os riscos dessa abordagem são significativos, especialmente à medida que o sistema cresce:
 
 Latência e Falta de Responsividade: O maior risco é o atraso na resposta a eventos críticos. No exemplo acima, se a função checar_sensor_x() levar 300ms para ser concluída, o sistema ficará "cego" para qualquer outra entrada durante esse período. Se um usuário pressionar um botão de emergência no início da checagem do sensor, a resposta ao botão só ocorrerá após 300ms, o que pode ser inaceitável.
 
@@ -204,7 +204,7 @@ Impossibilidade de Previsão (Não-Determinismo): É impossível garantir que um
 
 Conclusão: O polling sem prioridades, característico de sistemas bare-metal, é simples para projetos pequenos, mas extremamente arriscado para sistemas que exigem responsividade e previsibilidade. A introdução de um RTOS com escalonamento preemptivo por prioridades resolve esses problemas, permitindo que uma tarefa de alta prioridade (como a resposta a um botão) interrompa uma tarefa de baixa prioridade (como a leitura de um sensor lento), garantindo que os eventos críticos sejam sempre tratados com a urgência necessária.
 
-8. Glossário de Termos do FreeRTOS
+## 8. Glossário de Termos do FreeRTOS
 Tarefa (Task): Uma função independente que roda em seu próprio contexto, com sua própria pilha. É a unidade fundamental de execução.
 
 Escalonador (Scheduler): O núcleo do RTOS, responsável por decidir qual tarefa deve ser executada em cada instante.
@@ -219,7 +219,7 @@ Polling: Técnica de verificar repetidamente o estado de um dispositivo (como um
 
 Debounce: Processo de eliminar os ruídos elétricos gerados pelo acionamento mecânico de um botão, para que um único toque seja lido como um único evento.
 
-9. Referências e Links Úteis
+## 9. Referências e Links Úteis
 Documentação Oficial do FreeRTOS
 Documentação do Raspberry Pi Pico SDK
 Site Oficial da BitDogLab
