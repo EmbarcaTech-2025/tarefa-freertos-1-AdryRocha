@@ -27,6 +27,7 @@ RTOS_BitDogLab_FreeRTOS/
 │
 
 └── src/                   # Pasta com todo o código-fonte da aplicação
+
     ├── button.c
     ├── button.h
     ├── buzzer.c
