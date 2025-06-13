@@ -1,4 +1,10 @@
-# == DO NOT EDIT THE FOLLOWING LINES for the Raspberry Pi Pico VS Code Extension to work ==
+cmake_minimum_required(VERSION 3.13)
+
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# --- Bloco de configuração do VS Code (manter) ---
 if(WIN32)
     set(USERHOME $ENV{USERPROFILE})
 else()
@@ -11,47 +17,53 @@ set(picoVscode ${USERHOME}/.pico-sdk/cmake/pico-vscode.cmake)
 if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
-# ====================================================================================
-set(PICO_BOARD pico CACHE STRING "Board type")
+# --- Fim do Bloco ---
 
-cmake_minimum_required(VERSION 3.12)
-
-# Set any variables required for importing libraries
-if (DEFINED ENV{FREERTOS_PATH})
-  SET(FREERTOS_PATH $ENV{FREERTOS_PATH})
-else()
-  SET(FREERTOS_PATH ${CMAKE_CURRENT_LIST_DIR}/FreeRTOS-Kernel)
-endif()
-
-message("FreeRTOS Kernel located in ${FREERTOS_PATH}")
-
-# Import those libraries
+set(PICO_BOARD pico_w CACHE STRING "Board type")
 include(pico_sdk_import.cmake)
-include(${FREERTOS_PATH}/portable/ThirdParty/GCC/RP2040/FreeRTOS_Kernel_import.cmake)
 
-# Define project
-project(embarcatech-freertos-tarefa-1 C CXX ASM)
-
-# Initialize the Raspberry Pi Pico SDK
+project(rtos_bitdoglab C CXX ASM)
 pico_sdk_init()
 
-add_executable(embarcatech-freertos-tarefa-1
-    main.c
+# --- Configuração Manual Completa do FreeRTOS ---
+
+set(FREERTOS_PORT GCC_RP2040 CACHE STRING "FreeRTOS port for RP2040")
+
+add_library(freertos_config INTERFACE)
+target_include_directories(freertos_config INTERFACE ${CMAKE_CURRENT_LIST_DIR})
+
+add_subdirectory(free_rtos_kernel)
+
+add_executable(rtos_bitdoglab
+    src/main.c
+    src/led_rgb.c
+    src/buzzer.c
+    src/button.c
+    ${CMAKE_CURRENT_LIST_DIR}/free_rtos_kernel/portable/MemMang/heap_4.c
 )
 
-target_include_directories(embarcatech-freertos-tarefa-1 PRIVATE
+target_include_directories(rtos_bitdoglab PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
-    ${CMAKE_CURRENT_LIST_DIR}/include
+    ${CMAKE_CURRENT_LIST_DIR}/src
+    ${CMAKE_CURRENT_LIST_DIR}/free_rtos_kernel/include
+    ${CMAKE_CURRENT_LIST_DIR}/free_rtos_kernel/portable/GCC/ARM_CM0
 )
 
-target_link_libraries(embarcatech-freertos-tarefa-1 
-    pico_stdlib 
-    FreeRTOS-Kernel-Heap4 
-    hardware_i2c
-    )
+# CORREÇÃO: Removida a biblioteca "pico_cyw43_arch_nonos_poll" que não é necessária.
+target_link_libraries(rtos_bitdoglab
+    pico_stdlib
+    hardware_gpio
+    hardware_pwm
+    freertos_kernel
+    freertos_config
+)
 
-pico_add_extra_outputs(embarcatech-freertos-tarefa-1)
+# --- Fim da Configuração ---
 
-# if you have anything in "lib" folder then uncomment below - remember to add a CMakeLists.txt
-# file to the "lib" directory
-#add_subdirectory(lib)
+pico_set_program_name(rtos_bitdoglab "RTOS BitDogLab")
+pico_set_program_version(rtos_bitdoglab "0.1")
+
+pico_enable_stdio_usb(rtos_bitdoglab 1)
+pico_enable_stdio_uart(rtos_bitdoglab 0)
+
+pico_add_extra_outputs(rtos_bitdoglab)
