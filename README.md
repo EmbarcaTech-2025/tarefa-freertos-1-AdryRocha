@@ -11,7 +11,9 @@ Campinas, 13 de 2025
 
 Estrutura de Pastas do Projeto
 
-RTOS_BitDogLab_FreeRTOS/
+RTOS_BitDogLab_FreeRTOS
+
+/
 │
 
 ├── .gitignore             # Ignora arquivos desnecessários no Git
